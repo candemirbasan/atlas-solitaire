@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Atlas Solitaire</title>
+<meta name="theme-color" content="#5b1a2e">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --felt1:#7a2440; --felt2:#3d0f20; --rose:#e8557a; --rose2:#ff8fab; --gold:#f6c770;
+  --card:#fffaf5; --ink:#2a1a1f; --red:#d0254b; --black:#1e1a22;
+  --cw:50px; --ch:71px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--felt2);color:#fff;font-family:Nunito,system-ui,sans-serif;
+  -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none}
+body{background:radial-gradient(ellipse at 50% 20%,var(--felt1),var(--felt2) 75%) fixed}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M30 44s-12-7.5-12-15a6.5 6.5 0 0 1 12-3.5A6.5 6.5 0 0 1 42 29c0 7.5-12 15-12 15z' fill='%23fff'/%3E%3C/svg%3E")}
+#app{position:relative;margin:0 auto;height:100%;display:flex;flex-direction:column}
+header{display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 6px) 12px 2px}
+header h1{font-family:Caveat,cursive;font-weight:700;font-size:26px;margin:0;letter-spacing:.5px;text-shadow:0 2px 8px #0006}
+.stat{font-size:13px;font-weight:800;opacity:.9;display:flex;gap:10px;align-items:center}
+.stat span{background:#0003;padding:3px 9px;border-radius:20px}
+#board{position:relative;flex:1;margin:0 auto;width:100%}
+.slot{position:absolute;width:var(--cw);height:var(--ch);border-radius:calc(var(--cw)*.12);border:2px dashed #ffffff40;
+  display:flex;align-items:center;justify-content:center;font-size:calc(var(--cw)*.5);color:#ffffff40}
+.slot.stock{border-style:solid;cursor:pointer}
+.card{position:absolute;left:0;top:0;width:var(--cw);height:var(--ch);border-radius:calc(var(--cw)*.12);
+  transition:transform .2s ease;will-change:transform;cursor:pointer}
+.card.drag{transition:none}
+.card .face,.card .back{position:absolute;inset:0;border-radius:inherit;backface-visibility:hidden}
+.card .face{background:var(--card);box-shadow:0 1px 3px #0005;border:1px solid #0000001f;overflow:hidden;display:none}
+.card.up .face{display:block}
+.card.up .back{display:none}
+.card .back{box-shadow:0 1px 3px #0006;border:2px solid #fff;
+  background:radial-gradient(circle at 50% 50%,#ffffff22 0 18%,transparent 19%),
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14'%3E%3Cpath d='M7 11S2 8 2 5a2.5 2.5 0 0 1 5-1 2.5 2.5 0 0 1 5 1c0 3-5 6-5 6z' fill='%23ffffff30'/%3E%3C/svg%3E"),
+  linear-gradient(135deg,#e8557a,#9c2148)}
+.card .back::after{content:"A♥";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:Caveat,cursive;font-weight:700;font-size:calc(var(--cw)*.36);color:#fff;text-shadow:0 1px 2px #0005}
+.red{color:var(--red)} .blk{color:var(--black)}
+.tl{position:absolute;left:calc(var(--cw)*.07);top:calc(var(--cw)*.02);line-height:.95;text-align:center;font-weight:900}
+.tl b{display:block;font-size:calc(var(--cw)*.36);letter-spacing:-1px}
+.tl i{display:block;font-style:normal;font-size:calc(var(--cw)*.28)}
+.pip{position:absolute;right:calc(var(--cw)*.06);bottom:calc(var(--cw)*.0);font-size:calc(var(--cw)*.55);line-height:1}
+.med{position:absolute;right:calc(var(--cw)*.05);bottom:calc(var(--cw)*.05);width:calc(var(--cw)*.66);height:calc(var(--cw)*.66);
+  border-radius:50%;background-size:cover;background-position:center;border:2px solid var(--gold);box-shadow:0 1px 3px #0004}
+.heartbadge{position:absolute;top:calc(var(--cw)*.04);right:calc(var(--cw)*.05);font-size:calc(var(--cw)*.26);color:var(--rose);display:none}
+.card.hearted .heartbadge{display:block}
+.card.hint{box-shadow:0 0 0 3px var(--gold),0 0 16px var(--gold)}
+.slot.hint{border-color:var(--gold);box-shadow:0 0 14px var(--gold)}
+.card.shake{animation:shake .3s}
+@keyframes shake{25%{margin-left:-4px}75%{margin-left:4px}}
+footer{display:flex;justify-content:space-around;gap:6px;padding:6px 8px calc(env(safe-area-inset-bottom) + 10px)}
+footer button{flex:1;max-width:110px;background:#ffffff1c;border:1px solid #ffffff30;color:#fff;border-radius:14px;padding:8px 2px 6px;
+  font:800 11px Nunito,sans-serif;display:flex;flex-direction:column;align-items:center;gap:2px}
+footer button .ic{font-size:20px;line-height:1}
+footer button:active{background:#ffffff35}
+#finish{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 92px);transform:translateX(-50%);display:none;background:var(--gold);color:#4a1424;border:0;
+  border-radius:30px;padding:12px 26px;font:900 16px Nunito,sans-serif;box-shadow:0 4px 14px #0007;z-index:2000;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{transform:translateX(-50%) scale(1.06)}}
+/* toast */
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 50px);transform:translate(-50%,-20px);opacity:0;pointer-events:none;
+  background:#fffaf5;color:var(--ink);border-radius:18px;padding:12px 18px 12px 14px;max-width:88vw;width:max-content;z-index:5000;
+  box-shadow:0 8px 28px #0008;transition:.35s;display:flex;gap:10px;align-items:center;font-size:15px;font-weight:700}
+#toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#toast .th{font-size:28px;color:var(--rose);animation:beat 1s infinite}
+#toast .tt{font-family:Caveat,cursive;font-size:23px;line-height:1.1}
+@keyframes beat{0%,100%{transform:scale(1)}30%{transform:scale(1.25)}}
+/* modal */
+.modal{position:fixed;inset:0;background:#1a0710cc;display:none;align-items:center;justify-content:center;z-index:4000;padding:16px;
+  backdrop-filter:blur(3px)}
+.modal.on{display:flex}
+.sheet{background:#fffaf5;color:var(--ink);border-radius:22px;max-width:420px;width:100%;max-height:92vh;overflow:auto;
+  box-shadow:0 12px 40px #000a;animation:pop .35s cubic-bezier(.2,1.4,.5,1);text-align:center;padding:18px 18px 16px;touch-action:pan-y}
+@keyframes pop{from{transform:scale(.7);opacity:0}}
+.sheet h2{font-family:Caveat,cursive;font-size:34px;margin:2px 0 6px;color:#9c2148;line-height:1}
+.sheet p{margin:8px 0;font-size:15px;line-height:1.45}
+.sheet .hand{font-family:Caveat,cursive;font-size:24px;line-height:1.2;color:#4a1424}
+.polaroid{background:#fff;padding:10px 10px 8px;box-shadow:0 4px 14px #0003;border-radius:4px;margin:8px auto 4px;width:82%;transform:rotate(-2deg)}
+.polaroid img{width:100%;display:block;border-radius:2px;aspect-ratio:4/5;object-fit:cover}
+.polaroid .cap{font-family:Caveat,cursive;font-size:20px;color:#555;margin-top:6px}
+.btns{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+.btn{background:linear-gradient(135deg,#e8557a,#9c2148);color:#fff;border:0;border-radius:30px;padding:11px 20px;font:900 15px Nunito,sans-serif;
+  box-shadow:0 3px 10px #9c214866}
+.btn.alt{background:#f1e4e8;color:#9c2148;box-shadow:none}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.grid .ph{position:relative;aspect-ratio:4/5;border-radius:10px;overflow:hidden;background:#eadde1}
+.grid .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.grid .ph.lock img{filter:blur(9px) grayscale(.6);transform:scale(1.15)}
+.grid .ph.lock::after{content:"🔒";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px;background:#ffffff44}
+.coupon{border:3px dashed #e8557a;border-radius:16px;padding:16px 12px;margin:10px 0;background:repeating-linear-gradient(45deg,#fff3f6,#fff3f6 10px,#fff 10px,#fff 20px)}
+.coupon .ct{font:900 19px Nunito,sans-serif;color:#9c2148}
+.coupon .cs{font-size:12px;color:#888;margin-top:4px}
+.clist{text-align:left;margin-top:8px}
+.clist div{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 10px;border-radius:12px;background:#fff3f6;margin:6px 0;font-weight:800;font-size:14px}
+.clist div.used{opacity:.45;text-decoration:line-through}
+.clist button{border:0;background:#e8557a;color:#fff;border-radius:20px;padding:5px 10px;font:800 12px Nunito,sans-serif;flex:none}
+.tabs{display:flex;gap:6px;justify-content:center;margin-bottom:6px}
+.tabs button{border:0;border-radius:20px;padding:7px 14px;font:800 13px Nunito,sans-serif;background:#f1e4e8;color:#9c2148}
+.tabs button.on{background:#9c2148;color:#fff}
+.letter{text-align:left;font-family:Caveat,cursive;font-size:23px;line-height:1.3;color:#3a1020;white-space:pre-line;
+  background:repeating-linear-gradient(#fffaf5,#fffaf5 29px,#f0d6dd 30px);padding:6px 6px}
+canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:3500}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Atlas Solitaire ♥</h1>
+    <div class="stat"><span id="sHearts">♥ 0</span><span id="sWins">🏆 0</span></div>
+  </header>
+  <div id="board"></div>
+  <footer>
+    <button id="bNew"><span class="ic">🃏</span>Yeni</button>
+    <button id="bUndo"><span class="ic">↶</span>Geri al</button>
+    <button id="bHint"><span class="ic">💡</span>İpucu</button>
+    <button id="bAlbum"><span class="ic">📷</span>Anılar</button>
+    <button id="bSound"><span class="ic">🔊</span>Ses</button>
+  </footer>
+</div>
+<button id="finish">Bitir ✨</button>
+<div id="toast"><div class="th">♥</div><div class="tt"></div></div>
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+<canvas id="fx"></canvas>
+
+<script>
+/* =====================================================================
+   İÇERİK — buradaki metinleri istediğin gibi değiştirebilirsin
+   ===================================================================== */
+const NAME = "Atlas";
+const SIGN = "Seni çok seven kocan";
+
+const ALBUM = [
+  {img:"img/p01.jpg", tag:"Eylül 2024", text:"Gökyüzü pembeye dönmüştü ama ben yine sana bakıyordum. Gün batımının en güzel yanı, yanımda senin olmandı."},
+  {img:"img/p02.jpg", tag:"Aralık 2024", text:"Buzdolabının önünde bile seninle bir macera. Ben şaşkın, sen gülümsüyorsun. Her şey yerli yerinde."},
+  {img:"img/p03.jpg", tag:"Ocak 2025", text:"Kış güneşi, bir köşe, bir de sen. Mutluluk bazen bu kadar basit."},
+  {img:"img/p04.jpg", tag:"Mart 2025", text:"Yanağıma kondurduğun o öpücük... Hâlâ orada duruyor, söz."},
+  {img:"img/p05.jpg", tag:"Mart 2025", text:"Deniz, mavi tente, güzel bir sofra ve sen. Fotoğrafı ben çektim ama en güzel kare sendin."},
+  {img:"img/p06.jpg", tag:"Nisan 2025", text:"Ördek dudak yarışması! Kazanan belli değil ama çok güldüğümüz kesin."},
+  {img:"img/p07.jpg", tag:"Mayıs 2025", text:"Kırmızı rujun, renkli gömleğin... Telefona bakıyor gibi yapsam da aklım hep sendeydi."},
+  {img:"img/p08.jpg", tag:"Ağustos 2025", text:"Ağaçların arasında, doğanın ortasında. Ben keyif yaparken sen bu surata büründün. Seni bu hâlinle de çok seviyorum."},
+  {img:"img/p09.jpg", tag:"Bir macera günü", text:"Tozlu toprak yollar bile seninle güzel. Direksiyonda kim olursa olsun, yol arkadaşım hep sensin."},
+  {img:"img/p10.jpg", tag:"Ekim 2025", text:"Cadılar Bayramı makyajıyla bile dünyanın en tatlı cadısı. Ben de senin en mutlu canavarın."},
+  {img:"img/p11.jpg", tag:"Ekim 2025", text:"Evimizde sıradan bir akşam. Aslında hiçbiri sıradan değil, çünkü hepsinde sen varsın."},
+  {img:"img/p12.jpg", tag:"Ekim 2025", text:"Bu gülüşü görmek için her şeyi yaparım. Kupa Kızı'm, iyi ki varsın."},
+  {img:"img/p13.jpg", tag:"Aralık 2025", text:"Birbirimizi deli edip birlikte kahkaha atmak. En sevdiğim hâlimiz bu."},
+  {img:"img/p14.jpg", tag:"Aralık 2025", text:"Yılın sonunda bir öpücük. Her yeni yıla seninle girmek, dünyanın en güzel şansı."},
+  {img:"img/p15.jpg", tag:"Şubat 2026", text:"Gece yarısı, evimizde, yan yana. Dünyanın neresinde olursam olayım, evim sensin."},
+];
+
+const NOTES = [
+  "Gülüşün günümü aydınlatıyor.",
+  "Seni seviyorum. Bugün de, yarın da, hep.",
+  "Hayatımın en güzel hamlesi seninle evlenmekti.",
+  "Kupa Kızı sensin, ben de senin Papazın.",
+  "Bu oyun bitince bana sarıl, olur mu?",
+  "Dünyanın en güzel gözlüklü kadını sensin.",
+  "Sarılmak için bahaneye gerek yok ama bu kart bir bahane.",
+  "Sana bir öpücük borçluyum. Akşam tahsil et.",
+  "Seninle sessizlik bile güzel.",
+  "Kalbimin tek sahibi sensin.",
+  "Sen gülünce dünya biraz daha güzelleşiyor.",
+  "Birlikte yaşlanmak en sevdiğim plan.",
+  "Sen varken her şey yolunda.",
+  "Şu an bile seni düşünüyorum.",
+  "Çok güzelsin. Unutursun diye hatırlatayım dedim.",
+  "Seninle gülmek en sevdiğim şey.",
+  "Her kartta bir kalp, her kalpte sen.",
+  "Bugün seni bir kez daha seçiyorum.",
+  "Ördek dudağın bile çok yakışıyor.",
+  "Mutfakta dans etmeye ne dersin?",
+  "Bir sonraki maceramız nereye olsun?",
+  "En güzel ev, senin yanın.",
+  "Kızdığında bile çok tatlısın.",
+  "Bu kartı açtın, bir öpücük kazandın!",
+  "Sen benim asımsın.",
+  "Seninle her gün biraz daha güzel.",
+  "Gözlerin hâlâ ilk günkü gibi parlıyor.",
+  "Ellerin sıcacık, kalbin daha da sıcak.",
+  "İyi ki karşıma çıktın.",
+  "Bu kalp de senin, tıpkı benimki gibi.",
+];
+
+const COUPONS = [
+  "Yatağa sabah kahvesi ☕",
+  "Bu akşam bulaşıklar benden 🍽️",
+  "Film seçme hakkı (itiraz yok) 🎬",
+  "Uzun bir sırt masajı 💆‍♀️",
+  "Sevdiğin yerde akşam yemeği 🍷",
+  "Pazar kahvaltısı benden 🥐",
+  "Bir gün boyunca her dediğine 'evet' ✅",
+  "Sürpriz bir gezi 🚗",
+  "Sınırsız sarılma (süresiz geçerli) 🤗",
+];
+
+const SUIT_DONE = [
+  "Kupalar tamam! Kalbim zaten senin.",
+  "Karolar tamam! Elmas gibi kıymetlisin.",
+  "Sinekler tamam! Seninle her şey yolunda.",
+  "Maçalar tamam! Sen benim asımsın.",
+];
+
+const WIN_TITLES = ["Kazandın aşkım!","Harikasın!","Bravo güzelim!","Yine sen kazandın!","Şampiyonum benim!"];
+
+const LETTER = `Sevgili ${NAME}'ım,
+
+Bütün anıları topladın! Bu küçük oyunu sana gülümseyesin diye yaptım ama asıl oyunu sen çok önceden kazandın: kalbimi.
+
+Pembe gün batımlarında, tozlu yollarda, mutfakta, gece yarılarında... Her fotoğrafta aynı şeyi görüyorum: seninle her şey daha güzel.
+
+Kartlar karışır, oyun bazen zorlaşır ama ben her dağıtımda yine seni seçerim.
+
+Seni çok seviyorum.
+
+${SIGN} ♥`;
+
+/* =====================================================================
+   OYUN
+   ===================================================================== */
+const SUITS = ["♥","♦","♣","♠"], RANKS = ["","A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+const isRed = s => s < 2;
+const $ = s => document.querySelector(s);
+const board = $("#board");
+
+/* ---------- kayıt ---------- */
+let save = {wins:0, hearts:0, coupons:[], seenWelcome:false, sound:true, noteIdx:0, game:null};
+try { const s = JSON.parse(localStorage.getItem("atlasSoli")||"null"); if (s) save = Object.assign(save, s); } catch(e){}
+function persist(){ try { save.game = snapshot(); localStorage.setItem("atlasSoli", JSON.stringify(save)); } catch(e){} }
+
+/* ---------- durum ---------- */
+const cards = [];   // id -> {s,r}
+for (let s=0;s<4;s++) for (let r=1;r<=13;r++) cards.push({s,r});
+let G;              // {stock:[], waste:[], found:[[],[],[],[]], tab:[[]*7], up:Set-like obj, hearts:{id:1}, moves:0}
+let undoStack = [];
+const els = [];
+
+function snapshot(){ return JSON.parse(JSON.stringify(G)); }
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+// Kolay dağıtım: asların ve ikilerin kapalı kartların altına gömülmediği bir karışım seç
+function easyDeck(){
+  let best=null, bestScore=1e9;
+  for (let t=0;t<3000;t++){
+    const d = shuffle([...Array(52).keys()]);
+    let score=0, k=0;
+    for (let c=0;c<7;c++) for (let j=0;j<=c;j++){
+      const id=d[k++], r=cards[id].r, buried=c-j;
+      if (r===1) score += buried*3; else if (r===2) score += buried*1.5; else if (r===3) score += buried*.5;
+    }
+    if (score<bestScore){bestScore=score;best=d;}
+    if (score<=2) break;
+  }
+  return best;
+}
+
+function newGame(){
+  const d = easyDeck(); let k=0;
+  G = {stock:[], waste:[], found:[[],[],[],[]], tab:[[],[],[],[],[],[],[]], up:{}, hearts:{}, opened:{}, moves:0};
+  for (let c=0;c<7;c++) for (let j=0;j<=c;j++){ const id=d[k++]; G.tab[c].push(id); if (j===c) G.up[id]=1; }
+  G.stock = d.slice(k).reverse();
+  // gizli kalpler: 3 kapalı karta not sakla
+  const hidden = []; for (let c=1;c<7;c++) for (let j=0;j<c;j++) hidden.push(G.tab[c][j]);
+  shuffle(hidden).slice(0,3).forEach(id=>G.hearts[id]=1);
+  undoStack=[]; render(); persist();
+}
+
+/* ---------- DOM ---------- */
+const MED = {11:"img/jack.jpg",12:"img/queen.jpg",13:"img/king.jpg"};
+function buildCards(){
+  cards.forEach((c,id)=>{
+    const e=document.createElement("div"); e.className="card"; e.dataset.id=id;
+    const col = isRed(c.s)?"red":"blk";
+    const center = c.r>10 ? `<div class="med" style="background-image:url(${MED[c.r]})"></div>` : `<div class="pip ${col}">${SUITS[c.s]}</div>`;
+    e.innerHTML = `<div class="face"><div class="tl ${col}"><b>${RANKS[c.r]}</b><i>${SUITS[c.s]}</i></div>${center}<div class="heartbadge">♥</div></div><div class="back"></div>`;
+    board.appendChild(e); els[id]=e;
+  });
+}
+const slots = {};
+function buildSlots(){
+  const mk=(cls,html)=>{const e=document.createElement("div");e.className="slot "+cls;e.innerHTML=html;board.appendChild(e);return e;};
+  slots.stock = mk("stock","↻");
+  slots.waste = mk("waste","");
+  slots.found = SUITS.map(s=>mk("found",s));
+  slots.tab = [0,1,2,3,4,5,6].map(()=>mk("tab",""));
+}
+
+/* ---------- yerleşim ---------- */
+let L = {};
+function layout(){
+  const W = Math.min(window.innerWidth, 600, (board.clientHeight||600)*0.95);
+  const gap = Math.max(3, W*0.013);
+  const cw = (W - gap*8)/7, ch = cw*1.42;
+  const ox = (window.innerWidth - W)/2;
+  L = {W,gap,cw,ch,ox, top:gap+2, tabY: gap+2+ch+gap*3, H: board.clientHeight};
+  document.documentElement.style.setProperty("--cw", cw+"px");
+  document.documentElement.style.setProperty("--ch", ch+"px");
+}
+const colX = i => L.ox + L.gap + i*(L.cw+L.gap);
+function pos(e,x,y){ e.style.transform=`translate(${x}px,${y}px)`; }
+
+function tabOffsets(c){
+  const col=G.tab[c]; let down=L.cw*0.17, up=L.cw*0.33;
+  const nd=col.filter(id=>!G.up[id]).length, nu=col.length-nd;
+  const avail = L.H - L.tabY - L.ch - 8;
+  const need = nd*down + Math.max(0,nu-1)*up;
+  if (need>avail && need>0){ const f=avail/need; down*=f; up*=f; }
+  return {down,up};
+}
+
+function render(){
+  layout();
+  pos(slots.stock, colX(0), L.top); pos(slots.waste, colX(1), L.top);
+  slots.found.forEach((e,i)=>pos(e,colX(3+i),L.top));
+  slots.tab.forEach((e,i)=>pos(e,colX(i),L.tabY));
+  let z=1;
+  G.stock.forEach(id=>{const e=els[id]; e.classList.remove("up"); pos(e,colX(0),L.top); e.style.zIndex=z++;});
+  G.waste.forEach(id=>{const e=els[id]; e.classList.add("up"); pos(e,colX(1),L.top); e.style.zIndex=z++;});
+  G.found.forEach((f,i)=>f.forEach(id=>{const e=els[id]; e.classList.add("up"); pos(e,colX(3+i),L.top); e.style.zIndex=z++;}));
+  G.tab.forEach((col,c)=>{
+    const o=tabOffsets(c); let y=L.tabY;
+    col.forEach(id=>{const e=els[id]; e.classList.toggle("up",!!G.up[id]); pos(e,colX(c),y); e.style.zIndex=100+z++; y += G.up[id]?o.up:o.down;});
+  });
+  cards.forEach((c,id)=>els[id].classList.toggle("hearted", !!(G.hearts[id] && G.opened[id])));
+  $("#sHearts").textContent = "♥ "+save.hearts;
+  $("#sWins").textContent = "🏆 "+save.wins;
+  $("#finish").style.display = canAutoFinish() ? "block" : "none";
+}
+
+/* ---------- kurallar ---------- */
+function where(id){
+  if (G.stock.includes(id)) return {p:"stock"};
+  let i=G.waste.indexOf(id); if (i>=0) return {p:"waste",i};
+  for (let f=0;f<4;f++){ i=G.found[f].indexOf(id); if (i>=0) return {p:"found",f,i}; }
+  for (let c=0;c<7;c++){ i=G.tab[c].indexOf(id); if (i>=0) return {p:"tab",c,i}; }
+}
+const last = a => a[a.length-1];
+function canFound(id){ const c=cards[id], f=G.found[c.s]; return f.length ? cards[last(f)].r===c.r-1 : c.r===1; }
+function canTab(id,col){
+  const t=last(G.tab[col]), c=cards[id];
+  if (t===undefined) return c.r===13;
+  return G.up[t] && isRed(cards[t].s)!==isRed(c.s) && cards[t].r===c.r+1;
+}
+function pileOf(w){ return w.p==="waste"?G.waste : w.p==="found"?G.found[w.f] : w.p==="tab"?G.tab[w.c] : G.stock; }
+function movable(id){
+  const w=where(id); if(!w||w.p==="stock") return null;
+  if (w.p==="tab"){ if(!G.up[id]) return null; return G.tab[w.c].slice(w.i); }
+  return id===last(pileOf(w)) ? [id] : null;
+}
+
+function pushUndo(){ undoStack.push(snapshot()); if (undoStack.length>200) undoStack.shift(); }
+
+function doMove(ids, dest){ // dest: {p:"found",f} | {p:"tab",c}
+  pushUndo();
+  const w=where(ids[0]), src=pileOf(w);
+  src.splice(src.length-ids.length, ids.length);
+  const d = dest.p==="found" ? G.found[dest.f] : G.tab[dest.c];
+  d.push(...ids); G.moves++;
+  afterMove(w, dest);
+}
+function afterMove(from, dest){
+  // açığa çıkan kartı çevir
+  if (from && from.p==="tab"){ const t=last(G.tab[from.c]); if (t!==undefined && !G.up[t]){ G.up[t]=1; reveal(t); } }
+  sfx("place");
+  render(); persist();
+  if (dest && dest.p==="found" && G.found[dest.f].length===13 && !isWon()) toast(SUIT_DONE[dest.f], "♥", 3200);
+  if (isWon()) setTimeout(win, 450);
+}
+function reveal(id){
+  if (G.hearts[id] && !G.opened[id]){
+    G.opened[id]=1; save.hearts++;
+    const n = NOTES[save.noteIdx % NOTES.length]; save.noteIdx++;
+    setTimeout(()=>{ toast(n,"♥",4200); sfx("heart"); floatHeart(id); }, 220);
+  }
+}
+
+function drawStock(){
+  pushUndo();
+  if (!G.stock.length){ if(!G.waste.length){undoStack.pop();return;} G.stock = G.waste.reverse(); G.waste=[]; }
+  else G.waste.push(G.stock.pop());
+  G.moves++; sfx("flip"); render(); persist();
+}
+
+function bestDest(id, ids){
+  if (ids.length===1 && canFound(id)) { const w=where(id); if(!(w.p==="found")) return {p:"found",f:cards[id].s}; }
+  const w=where(id);
+  const order=[0,1,2,3,4,5,6].sort((a,b)=>(G.tab[b].length>0)-(G.tab[a].length>0));
+  for (const c of order){
+    if (w.p==="tab" && w.c===c) continue;
+    if (!G.tab[c].length && w.p==="tab" && w.i===0) continue; // papazı boşuna taşıma
+    if (canTab(id,c)) return {p:"tab",c};
+  }
+  return null;
+}
+
+function isWon(){ return G.found.every(f=>f.length===13); }
+function canAutoFinish(){ return !isWon() && !G.stock.length && !G.waste.length && G.tab.every(col=>col.every(id=>G.up[id])); }
+function autoFinish(){
+  $("#finish").style.display="none";
+  const step=()=>{
+    for (let c=0;c<7;c++){ const t=last(G.tab[c]); if (t!==undefined && canFound(t)){ G.tab[c].pop(); G.found[cards[t].s].push(t); G.moves++; sfx("place"); render(); break; } }
+    if (isWon()){ persist(); setTimeout(win,450); } else setTimeout(step,90);
+  };
+  pushUndo(); step();
+}
+
+/* ---------- ipucu ---------- */
+function findHint(){
+  const tops=[]; if (G.waste.length) tops.push(last(G.waste));
+  G.tab.forEach(col=>{ if(col.length) tops.push(last(col)); });
+  for (const id of tops) if (canFound(id)) return {ids:[id], dest:{p:"found",f:cards[id].s}};
+  for (let c=0;c<7;c++){ const col=G.tab[c]; const i=col.findIndex(id=>G.up[id]); if(i<0) continue;
+    const id=col[i];
+    for (let d=0;d<7;d++){ if(d===c) continue; if (canTab(id,d) && !(i===0 && !G.tab[d].length)) return {ids:col.slice(i), dest:{p:"tab",c:d}}; } }
+  if (G.waste.length){ const id=last(G.waste); for (let d=0;d<7;d++) if (canTab(id,d)) return {ids:[id], dest:{p:"tab",c:d}}; }
+  if (G.stock.length || G.waste.length) return {stock:true};
+  return null;
+}
+function showHint(){
+  document.querySelectorAll(".hint").forEach(e=>e.classList.remove("hint"));
+  const h=findHint();
+  if (!h){ toast("Hamle kalmadı. Yeni oyuna ne dersin?","🃏",2500); return; }
+  const mark=[];
+  if (h.stock) mark.push(G.stock.length?els[last(G.stock)]:slots.stock);
+  else { h.ids.forEach(id=>mark.push(els[id]));
+    const d=h.dest; const dp = d.p==="found"?G.found[d.f]:G.tab[d.c];
+    mark.push(dp.length?els[last(dp)]:(d.p==="found"?slots.found[d.f]:slots.tab[d.c])); }
+  mark.forEach(e=>e.classList.add("hint"));
+  setTimeout(()=>mark.forEach(e=>e.classList.remove("hint")),1400);
+}
+
+/* ---------- dokunma / sürükleme ---------- */
+let drag=null;
+board.addEventListener("pointerdown", e=>{
+  if (e.target.closest(".slot.stock")){ drawStock(); return; }
+  const ce=e.target.closest(".card"); if(!ce) return;
+  const id=+ce.dataset.id, w=where(id);
+  if (w.p==="stock"){ drawStock(); return; }
+  const ids=movable(id); if(!ids) return;
+  const r=ce.getBoundingClientRect();
+  drag={ids, sx:e.clientX, sy:e.clientY, moved:false, starts:ids.map(i=>{const b=els[i].getBoundingClientRect(); return {x:b.left-board.getBoundingClientRect().left, y:b.top-board.getBoundingClientRect().top};})};
+  board.setPointerCapture(e.pointerId);
+});
+board.addEventListener("pointermove", e=>{
+  if(!drag) return;
+  const dx=e.clientX-drag.sx, dy=e.clientY-drag.sy;
+  if (!drag.moved && Math.hypot(dx,dy)<7) return;
+  drag.moved=true;
+  drag.ids.forEach((id,k)=>{const el=els[id]; el.classList.add("drag"); el.style.zIndex=1000+k; pos(el,drag.starts[k].x+dx,drag.starts[k].y+dy);});
+});
+board.addEventListener("pointerup", e=>{
+  if(!drag) return;
+  const d=drag; drag=null;
+  d.ids.forEach(id=>els[id].classList.remove("drag"));
+  const id=d.ids[0];
+  if (!d.moved){ // dokunma → otomatik yerleştir
+    const dest=bestDest(id,d.ids);
+    if (dest) doMove(d.ids,dest); else { els[id].classList.add("shake"); setTimeout(()=>els[id].classList.remove("shake"),300); }
+    return;
+  }
+  // bırakılan yer
+  const br=board.getBoundingClientRect();
+  const cx = d.starts[0].x + (e.clientX-d.sx) + L.cw/2, cy = d.starts[0].y + (e.clientY-d.sy) + L.ch/2;
+  let col = Math.round((cx - L.ox - L.gap - L.cw/2)/(L.cw+L.gap)); col=Math.max(0,Math.min(6,col));
+  let dest=null;
+  if (cy < L.tabY - L.gap){ if (col>=3 && d.ids.length===1 && cards[id].s===col-3 && canFound(id)) dest={p:"found",f:col-3}; }
+  else if (canTab(id,col) && !(where(id).p==="tab" && where(id).c===col)) dest={p:"tab",c:col};
+  if (!dest){ // yakın olana yardım et
+    const bd=bestDest(id,d.ids);
+    if (bd && ((bd.p==="tab"&&Math.abs(bd.c-col)<=1) || (bd.p==="found"&&cy<L.tabY))) dest=bd;
+  }
+  if (dest) doMove(d.ids,dest); else render();
+});
+board.addEventListener("pointercancel", ()=>{ if(drag){drag.ids.forEach(id=>els[id].classList.remove("drag")); drag=null; render();} });
+
+/* ---------- butonlar ---------- */
+$("#bNew").onclick=()=>{ if (G.moves>3 && !isWon()) { confirmNew(); } else newGame(); };
+$("#bUndo").onclick=()=>{ if(!undoStack.length) return; G=undoStack.pop(); sfx("flip"); render(); persist(); };
+$("#bHint").onclick=showHint;
+$("#bAlbum").onclick=()=>openAlbum("photos");
+$("#bSound").onclick=()=>{ save.sound=!save.sound; $("#bSound .ic").textContent=save.sound?"🔊":"🔇"; persist(); };
+$("#finish").onclick=autoFinish;
+window.addEventListener("resize", ()=>render());
+
+/* ---------- ses ---------- */
+let AC=null;
+function sfx(kind){
+  if(!save.sound) return;
+  try{
+    AC = AC || new (window.AudioContext||window.webkitAudioContext)();
+    const t=AC.currentTime;
+    const note=(f,d,s=0,type="sine",v=.12)=>{const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=f;
+      g.gain.setValueAtTime(0,t+s);g.gain.linearRampToValueAtTime(v,t+s+.01);g.gain.exponentialRampToValueAtTime(.001,t+s+d);
+      o.connect(g).connect(AC.destination);o.start(t+s);o.stop(t+s+d+.05);};
+    if(kind==="place") note(520,.08,0,"triangle",.08);
+    if(kind==="flip") note(340,.06,0,"triangle",.06);
+    if(kind==="heart"){ note(784,.25); note(1046,.35,.12); }
+    if(kind==="win"){ [523,659,784,1046,1318].forEach((f,i)=>note(f,.4,i*.12,"sine",.1)); }
+  }catch(e){}
+}
+
+/* ---------- efektler ---------- */
+const fx=$("#fx"), ctx=fx.getContext("2d"); let parts=[], fxOn=false;
+function sizeFx(){ fx.width=innerWidth*devicePixelRatio; fx.height=innerHeight*devicePixelRatio; ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); }
+sizeFx(); addEventListener("resize",sizeFx);
+function burst(x,y,n,spread){
+  const cols=["#ff8fab","#e8557a","#ffd1dc","#f6c770","#ffffff","#c9184a"];
+  for(let i=0;i<n;i++) parts.push({x,y,vx:(Math.random()-.5)*spread,vy:-Math.random()*spread*.9-2,s:10+Math.random()*16,
+    c:cols[i%cols.length],r:Math.random()*6,vr:(Math.random()-.5)*.2,life:120+Math.random()*80});
+  if(!fxOn){fxOn=true;requestAnimationFrame(tick);}
+}
+function heartPath(s){ ctx.beginPath(); ctx.moveTo(0,s*.3); ctx.bezierCurveTo(0,0,-s*.5,0,-s*.5,s*.3); ctx.bezierCurveTo(-s*.5,s*.6,0,s*.75,0,s); ctx.bezierCurveTo(0,s*.75,s*.5,s*.6,s*.5,s*.3); ctx.bezierCurveTo(s*.5,0,0,0,0,s*.3); ctx.fill(); }
+function tick(){
+  ctx.clearRect(0,0,innerWidth,innerHeight);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.12;p.vx*=.99;p.r+=p.vr;p.life--;
+    ctx.save();ctx.globalAlpha=Math.min(1,p.life/40);ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillStyle=p.c;heartPath(p.s);ctx.restore();});
+  parts=parts.filter(p=>p.life>0&&p.y<innerHeight+40);
+  if(parts.length) requestAnimationFrame(tick); else {fxOn=false;ctx.clearRect(0,0,innerWidth,innerHeight);}
+}
+function floatHeart(id){ const b=els[id].getBoundingClientRect(); burst(b.left+b.width/2,b.top+b.height/3,14,7); }
+function rain(){ let k=0; const iv=setInterval(()=>{ burst(Math.random()*innerWidth, innerHeight*.35, 18, 10); if(++k>8) clearInterval(iv); },180); }
+
+let toastT;
+function toast(text, icon="♥", ms=3000){
+  const t=$("#toast"); t.querySelector(".tt").textContent=text; t.querySelector(".th").textContent=icon;
+  t.classList.add("on"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("on"),ms);
+}
+$("#toast").onclick=()=>$("#toast").classList.remove("on");
+
+/* ---------- pencereler ---------- */
+function modal(html){ $("#sheet").innerHTML=html; $("#modal").classList.add("on"); $("#sheet").scrollTop=0; }
+function closeModal(){ $("#modal").classList.remove("on"); }
+$("#modal").addEventListener("click", e=>{ if(e.target.id==="modal") closeModal(); });
+const esc = s => s.replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function confirmNew(){
+  modal(`<h2>Yeni oyun?</h2><p>Bu oyun yarıda kalacak. Emin misin güzelim?</p>
+  <div class="btns"><button class="btn alt" id="mNo">Devam et</button><button class="btn" id="mYes">Yeni oyun</button></div>`);
+  $("#mNo").onclick=closeModal; $("#mYes").onclick=()=>{closeModal();newGame();};
+}
+
+function win(){
+  if (G.wonCounted) return; G.wonCounted=true;
+  save.wins++; persist(); sfx("win"); rain();
+  const w=save.wins, title=WIN_TITLES[(w-1)%WIN_TITLES.length];
+  const queue=[];
+  if (w<=ALBUM.length){
+    const a=ALBUM[w-1];
+    queue.push(()=>modal(`<h2>${title}</h2><p>Albümümüze yeni bir anı eklendi <b>(${w}/${ALBUM.length})</b></p>
+      <div class="polaroid"><img src="${a.img}" alt=""><div class="cap">${esc(a.tag)}</div></div>
+      <p class="hand">${esc(a.text)}</p><div class="btns"><button class="btn" id="mNext">Devam ♥</button></div>`));
+  } else {
+    const a=ALBUM[Math.random()*ALBUM.length|0];
+    queue.push(()=>modal(`<h2>${title}</h2><p>${w}. zaferin! Bu da hatırlamak istediğim bir an:</p>
+      <div class="polaroid"><img src="${a.img}" alt=""><div class="cap">${esc(a.tag)}</div></div>
+      <div class="btns"><button class="btn" id="mNext">Devam ♥</button></div>`));
+  }
+  if (w%2===0){
+    const c=COUPONS[(w/2-1)%COUPONS.length]; save.coupons.push({t:c,used:false}); persist();
+    queue.push(()=>modal(`<h2>Sürpriz kupon!</h2><p>Bunu bana göster, hemen kullanabilirsin:</p>
+      <div class="coupon"><div class="ct">${esc(c)}</div><div class="cs">${esc(SIGN)} tarafından verilmiştir · son kullanma tarihi yok</div></div>
+      <div class="btns"><button class="btn" id="mNext">Teşekkürler ♥</button></div>`));
+  }
+  if (w===ALBUM.length) queue.push(()=>modal(`<h2>Son anı: bir mektup</h2><div class="letter">${esc(LETTER)}</div>
+      <div class="btns"><button class="btn" id="mNext">Ben de seni ♥</button></div>`));
+  queue.push(()=>modal(`<h2>Bir el daha?</h2><p>${w<ALBUM.length?`Bir sonraki anı seni bekliyor. ${ALBUM.length-w} anı kaldı!`:"Bütün anıları topladın. Kalpler ve kuponlar hâlâ çıkmaya devam ediyor!"}</p>
+      <div class="btns"><button class="btn alt" id="mAlb">Anılar</button><button class="btn" id="mNext">Yeni oyun</button></div>`));
+  let i=0;
+  const next=()=>{ if(i>=queue.length){closeModal();newGame();return;} queue[i++](); const b=$("#mNext"); if(b) b.onclick=next; const a=$("#mAlb"); if(a) a.onclick=()=>{newGame();openAlbum("photos");}; };
+  setTimeout(next, 1300);
+}
+
+function openAlbum(tab){
+  const unlocked=Math.min(save.wins,ALBUM.length);
+  const tabs=`<div class="tabs"><button data-t="photos" class="${tab==="photos"?"on":""}">📷 Anılar</button><button data-t="coupons" class="${tab==="coupons"?"on":""}">🎟️ Kuponlar</button>${save.wins>=ALBUM.length?`<button data-t="letter" class="${tab==="letter"?"on":""}">💌 Mektup</button>`:""}</div>`;
+  let body="";
+  if (tab==="photos"){
+    body=`<p>${unlocked}/${ALBUM.length} anı açıldı. Her kazandığın oyun yeni bir anı açar.</p><div class="grid">`+
+      ALBUM.map((a,i)=>`<div class="ph ${i<unlocked?"":"lock"}" data-i="${i}"><img src="${a.img}" alt="" loading="lazy"></div>`).join("")+`</div>`;
+  } else if (tab==="coupons"){
+    body = save.coupons.length ? `<p>Kazandığın kuponlar. Kullanınca işaretle:</p><div class="clist">`+
+      save.coupons.map((c,i)=>`<div class="${c.used?"used":""}"><span>${esc(c.t)}</span>${c.used?"":`<button data-c="${i}">Kullandım</button>`}</div>`).join("")+`</div>`
+      : `<p>Henüz kupon yok. Her 2 zaferde bir sürpriz kupon kazanırsın! 🎟️</p>`;
+  } else body=`<div class="letter">${esc(LETTER)}</div>`;
+  modal(`<h2>Bizim Albüm</h2>${tabs}${body}<div class="btns"><button class="btn" id="mClose">Oyuna dön</button></div>`);
+  $("#mClose").onclick=closeModal;
+  document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>openAlbum(b.dataset.t));
+  document.querySelectorAll(".clist button").forEach(b=>b.onclick=()=>{save.coupons[+b.dataset.c].used=true;persist();openAlbum("coupons");});
+  document.querySelectorAll(".grid .ph").forEach(p=>p.onclick=()=>{
+    const i=+p.dataset.i;
+    if (i>=unlocked){ toast(`Bu anı ${i+1-save.wins} zafer sonra açılacak 🔒`,"♥",2200); return; }
+    const a=ALBUM[i];
+    modal(`<div class="polaroid"><img src="${a.img}" alt=""><div class="cap">${esc(a.tag)}</div></div><p class="hand">${esc(a.text)}</p>
+      <div class="btns"><button class="btn alt" id="mBack">Albüm</button><button class="btn" id="mClose">Oyuna dön</button></div>`);
+    $("#mBack").onclick=()=>openAlbum("photos"); $("#mClose").onclick=closeModal;
+  });
+}
+
+function welcome(){
+  modal(`<div class="polaroid"><img src="img/p04.jpg" alt=""><div class="cap">Sadece senin için ♥</div></div>
+    <h2>Merhaba ${NAME}'ım!</h2>
+    <p>Bu oyunu senin için yaptım. Bildiğin solitaire, ama içinde sana küçük sürprizler sakladım:</p>
+    <p style="text-align:left;font-size:14px">♥ Bazı kapalı kartların altında sana notlar var. Kalpleri bul!<br>
+    📷 Kazandığın her oyun albümümüze bir anı ekler.<br>🎟️ Arada bir de sürpriz kuponlar çıkar.<br>
+    👆 Bir karta dokunursan kart kendiliğinden yerine gider.</p>
+    <div class="btns"><button class="btn" id="mGo">Hadi oynayalım ♥</button></div>`);
+  $("#mGo").onclick=()=>{ closeModal(); save.seenWelcome=true; persist(); sfx("heart"); };
+}
+
+function greet(){
+  const d=new Date(), h=d.getHours(), m=d.getMonth()+1, day=d.getDate();
+  if (m===2 && day===14) return toast("Sevgililer Günün kutlu olsun aşkım!","💝",4500);
+  if (m===1 && day===1) return toast("Yeni yılımız kutlu olsun, seninle her yıl güzel!","🎉",4500);
+  const g = h<5?"Bu saatte uyanık mısın aşkım? ♥" : h<12?"Günaydın güzelim ☀️" : h<18?"İyi günler aşkım, mola vakti!" : "İyi akşamlar sevgilim 🌙";
+  toast(g,"♥",3000);
+}
+
+/* ---------- başlat ---------- */
+buildSlots(); buildCards();
+$("#bSound .ic").textContent=save.sound?"🔊":"🔇";
+if (save.game && save.game.tab && !save.game.wonCounted) { G=save.game; G.opened=G.opened||{}; render(); } else newGame();
+requestAnimationFrame(()=>render());
+if (!save.seenWelcome) welcome(); else setTimeout(greet,500);
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
