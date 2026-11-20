@@ -1,4 +1,4 @@
-const V="atlas-v1";
+const V="atlas-v2";
 const FILES=["./","index.html","manifest.json","icon-192.png","icon-512.png","img/king.jpg","img/queen.jpg","img/jack.jpg",
  ...Array.from({length:15},(_,i)=>`img/p${String(i+1).padStart(2,"0")}.jpg`)];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(FILES)));self.skipWaiting();});

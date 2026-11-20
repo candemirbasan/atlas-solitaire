@@ -48,9 +48,35 @@ header h1{font-family:Caveat,cursive;font-weight:700;font-size:26px;margin:0;let
 .tl{position:absolute;left:calc(var(--cw)*.07);top:calc(var(--cw)*.02);line-height:.95;text-align:center;font-weight:900}
 .tl b{display:block;font-size:calc(var(--cw)*.36);letter-spacing:-1px}
 .tl i{display:block;font-style:normal;font-size:calc(var(--cw)*.28)}
-.pip{position:absolute;right:calc(var(--cw)*.06);bottom:calc(var(--cw)*.0);font-size:calc(var(--cw)*.55);line-height:1}
-.med{position:absolute;right:calc(var(--cw)*.05);bottom:calc(var(--cw)*.05);width:calc(var(--cw)*.66);height:calc(var(--cw)*.66);
+.br{position:absolute;right:calc(var(--cw)*.07);bottom:calc(var(--cw)*.02);line-height:.95;text-align:center;font-weight:900;transform:rotate(180deg)}
+.br b{display:block;font-size:calc(var(--cw)*.24);letter-spacing:-1px}
+.br i{display:block;font-style:normal;font-size:calc(var(--cw)*.19)}
+.pip{position:absolute;left:50%;top:56%;transform:translate(-50%,-50%);font-size:calc(var(--cw)*.5);line-height:1}
+.med{position:absolute;left:50%;top:57%;transform:translate(-50%,-50%);width:calc(var(--cw)*.58);height:calc(var(--cw)*.58);
   border-radius:50%;background-size:cover;background-position:center;border:2px solid var(--gold);box-shadow:0 1px 3px #0004}
+#status{display:flex;justify-content:center;gap:14px;font-size:12px;font-weight:800;opacity:.8;padding:0 12px 2px}
+#coach{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 84px);transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  width:min(92vw,420px);background:#fffaf5;color:var(--ink);border-radius:18px;padding:12px 14px 10px;z-index:3000;
+  box-shadow:0 8px 28px #0009;transition:.3s;font-size:14.5px;line-height:1.4;font-weight:700}
+#coach.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#coach::after{content:"";position:absolute;left:50%;bottom:-8px;margin-left:-8px;border:8px solid transparent;border-bottom:0;border-top-color:#fffaf5}
+#coach .cb{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+#coach button{border:0;border-radius:20px;padding:7px 14px;font:900 13px Nunito,sans-serif;background:linear-gradient(135deg,#e8557a,#9c2148);color:#fff}
+#coach button.alt{background:#f1e4e8;color:#9c2148}
+footer button.pulse{animation:hb 1s infinite;border-color:var(--gold)}
+@keyframes hb{50%{background:#f6c77066}}
+.rules{text-align:left}
+.rules .r{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid #f0dde3}
+.rules .r:last-child{border:0}
+.rules .ri{font-size:24px;line-height:1;flex:none;width:30px;text-align:center}
+.rules p{margin:0;font-size:14px}
+.rules b{color:#9c2148}
+.mini{display:inline-flex;gap:3px;margin-top:6px;vertical-align:middle}
+.mini span{display:inline-flex;align-items:center;justify-content:center;width:30px;height:42px;border-radius:5px;background:#fff;
+  border:1px solid #0002;box-shadow:0 1px 2px #0003;font:900 13px Nunito,sans-serif;flex-direction:column;line-height:1}
+.mini span.dn{background:linear-gradient(135deg,#e8557a,#9c2148);border:2px solid #fff}
+.mini span.arrow{background:none;border:0;box-shadow:none;width:auto;font-size:16px;color:#9c2148}
+canvas#bounce{position:fixed;inset:0;z-index:3400;display:none}
 .heartbadge{position:absolute;top:calc(var(--cw)*.04);right:calc(var(--cw)*.05);font-size:calc(var(--cw)*.26);color:var(--rose);display:none}
 .card.hearted .heartbadge{display:block}
 .card.hint{box-shadow:0 0 0 3px var(--gold),0 0 16px var(--gold)}
@@ -116,16 +142,20 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:3500}
     <h1>Atlas Solitaire ♥</h1>
     <div class="stat"><span id="sHearts">♥ 0</span><span id="sWins">🏆 0</span></div>
   </header>
+  <div id="status"><span id="sScore">Puan 0</span><span id="sTime">Süre 0:00</span><span id="sMoves">Hamle 0</span></div>
   <div id="board"></div>
   <footer>
     <button id="bNew"><span class="ic">🃏</span>Yeni</button>
     <button id="bUndo"><span class="ic">↶</span>Geri al</button>
     <button id="bHint"><span class="ic">💡</span>İpucu</button>
+    <button id="bRules"><span class="ic">❓</span>Kurallar</button>
     <button id="bAlbum"><span class="ic">📷</span>Anılar</button>
     <button id="bSound"><span class="ic">🔊</span>Ses</button>
   </footer>
 </div>
 <button id="finish">Bitir ✨</button>
+<div id="coach"><div class="ct"></div><div class="cb"></div></div>
+<canvas id="bounce"></canvas>
 <div id="toast"><div class="th">♥</div><div class="tt"></div></div>
 <div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
 <canvas id="fx"></canvas>
@@ -230,8 +260,10 @@ const $ = s => document.querySelector(s);
 const board = $("#board");
 
 /* ---------- kayıt ---------- */
-let save = {wins:0, hearts:0, coupons:[], seenWelcome:false, sound:true, noteIdx:0, game:null};
+let save = {wins:0, hearts:0, coupons:[], seenWelcome:false, sound:true, noteIdx:0, game:null, tips:{}, version:0};
 try { const s = JSON.parse(localStorage.getItem("atlasSoli")||"null"); if (s) save = Object.assign(save, s); } catch(e){}
+save.tips = save.tips || {};
+let lastAction = Date.now(), justFlipped = false;
 function persist(){ try { save.game = snapshot(); localStorage.setItem("atlasSoli", JSON.stringify(save)); } catch(e){} }
 
 /* ---------- durum ---------- */
@@ -262,14 +294,15 @@ function easyDeck(){
 }
 
 function newGame(){
+  cards.forEach((c,id)=>{ if(els[id]) els[id].style.visibility=""; });
   const d = easyDeck(); let k=0;
-  G = {stock:[], waste:[], found:[[],[],[],[]], tab:[[],[],[],[],[],[],[]], up:{}, hearts:{}, opened:{}, moves:0};
+  G = {stock:[], waste:[], found:[[],[],[],[]], tab:[[],[],[],[],[],[],[]], up:{}, hearts:{}, opened:{}, moves:0, score:0, time:0, recycles:0};
   for (let c=0;c<7;c++) for (let j=0;j<=c;j++){ const id=d[k++]; G.tab[c].push(id); if (j===c) G.up[id]=1; }
   G.stock = d.slice(k).reverse();
   // gizli kalpler: 3 kapalı karta not sakla
   const hidden = []; for (let c=1;c<7;c++) for (let j=0;j<c;j++) hidden.push(G.tab[c][j]);
   shuffle(hidden).slice(0,3).forEach(id=>G.hearts[id]=1);
-  undoStack=[]; render(); persist();
+  undoStack=[]; lastAction=Date.now(); G.idleShown=false; render(); persist();
 }
 
 /* ---------- DOM ---------- */
@@ -279,7 +312,8 @@ function buildCards(){
     const e=document.createElement("div"); e.className="card"; e.dataset.id=id;
     const col = isRed(c.s)?"red":"blk";
     const center = c.r>10 ? `<div class="med" style="background-image:url(${MED[c.r]})"></div>` : `<div class="pip ${col}">${SUITS[c.s]}</div>`;
-    e.innerHTML = `<div class="face"><div class="tl ${col}"><b>${RANKS[c.r]}</b><i>${SUITS[c.s]}</i></div>${center}<div class="heartbadge">♥</div></div><div class="back"></div>`;
+    const corner = `<b>${RANKS[c.r]}</b><i>${SUITS[c.s]}</i>`;
+    e.innerHTML = `<div class="face"><div class="tl ${col}">${corner}</div>${center}<div class="br ${col}">${corner}</div><div class="heartbadge">♥</div></div><div class="back"></div>`;
     board.appendChild(e); els[id]=e;
   });
 }
@@ -332,6 +366,18 @@ function render(){
   $("#sHearts").textContent = "♥ "+save.hearts;
   $("#sWins").textContent = "🏆 "+save.wins;
   $("#finish").style.display = canAutoFinish() ? "block" : "none";
+  $("#sScore").textContent = "Puan "+(G.score||0);
+  $("#sMoves").textContent = "Hamle "+G.moves;
+  $("#sTime").textContent = "Süre "+fmtTime(G.time||0);
+  setTimeout(coachCheck, 350);
+}
+const fmtTime = s => Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
+// eski kayıtlarda yanlışlıkla kapalı kalmış kartları düzelt
+function repair(){
+  G.tab.forEach(col=>{ let seen=false;
+    col.forEach(id=>{ if (G.up[id]) seen=true; else if (seen) G.up[id]=1; });
+    const t=last(col); if (t!==undefined) G.up[t]=1; });
+  G.waste.concat(...G.found).forEach(id=>G.up[id]=1);
 }
 
 /* ---------- kurallar ---------- */
@@ -363,11 +409,19 @@ function doMove(ids, dest){ // dest: {p:"found",f} | {p:"tab",c}
   src.splice(src.length-ids.length, ids.length);
   const d = dest.p==="found" ? G.found[dest.f] : G.tab[dest.c];
   d.push(...ids); G.moves++;
+  ids.forEach(id=>G.up[id]=1);            // sütuna/yuvaya konan kart her zaman açık
+  // Windows usulü puan
+  let pts=0;
+  if (dest.p==="found" && w.p!=="found") pts+=10;
+  else if (dest.p==="tab" && w.p==="waste") pts+=5;
+  else if (dest.p==="tab" && w.p==="found") pts-=15;
+  G.score=Math.max(0,(G.score||0)+pts);
+  G.recycles=0; lastAction=Date.now();
   afterMove(w, dest);
 }
 function afterMove(from, dest){
   // açığa çıkan kartı çevir
-  if (from && from.p==="tab"){ const t=last(G.tab[from.c]); if (t!==undefined && !G.up[t]){ G.up[t]=1; reveal(t); } }
+  if (from && from.p==="tab"){ const t=last(G.tab[from.c]); if (t!==undefined && !G.up[t]){ G.up[t]=1; G.score=(G.score||0)+5; reveal(t); justFlipped=true; } }
   sfx("place");
   render(); persist();
   if (dest && dest.p==="found" && G.found[dest.f].length===13 && !isWon()) toast(SUIT_DONE[dest.f], "♥", 3200);
@@ -383,9 +437,9 @@ function reveal(id){
 
 function drawStock(){
   pushUndo();
-  if (!G.stock.length){ if(!G.waste.length){undoStack.pop();return;} G.stock = G.waste.reverse(); G.waste=[]; }
+  if (!G.stock.length){ if(!G.waste.length){undoStack.pop();return;} G.stock = G.waste.reverse(); G.waste=[]; G.recycles=(G.recycles||0)+1; }
   else G.waste.push(G.stock.pop());
-  G.moves++; sfx("flip"); render(); persist();
+  G.moves++; lastAction=Date.now(); save.tips.stock=1; sfx("flip"); render(); persist();
 }
 
 function bestDest(id, ids){
@@ -405,7 +459,7 @@ function canAutoFinish(){ return !isWon() && !G.stock.length && !G.waste.length 
 function autoFinish(){
   $("#finish").style.display="none";
   const step=()=>{
-    for (let c=0;c<7;c++){ const t=last(G.tab[c]); if (t!==undefined && canFound(t)){ G.tab[c].pop(); G.found[cards[t].s].push(t); G.moves++; sfx("place"); render(); break; } }
+    for (let c=0;c<7;c++){ const t=last(G.tab[c]); if (t!==undefined && canFound(t)){ G.tab[c].pop(); G.found[cards[t].s].push(t); G.moves++; G.score=(G.score||0)+10; sfx("place"); render(); break; } }
     if (isWon()){ persist(); setTimeout(win,450); } else setTimeout(step,90);
   };
   pushUndo(); step();
@@ -483,8 +537,72 @@ board.addEventListener("pointercancel", ()=>{ if(drag){drag.ids.forEach(id=>els[
 /* ---------- butonlar ---------- */
 $("#bNew").onclick=()=>{ if (G.moves>3 && !isWon()) { confirmNew(); } else newGame(); };
 $("#bUndo").onclick=()=>{ if(!undoStack.length) return; G=undoStack.pop(); sfx("flip"); render(); persist(); };
-$("#bHint").onclick=showHint;
+$("#bHint").onclick=()=>{ $("#bHint").classList.remove("pulse"); lastAction=Date.now(); showHint(); };
+$("#bRules").onclick=()=>openRules();
 $("#bAlbum").onclick=()=>openAlbum("photos");
+
+/* ---------- süre ---------- */
+setInterval(()=>{
+  if (document.hidden || !G || isWon() || G.moves===0 || $("#modal").classList.contains("on")) return;
+  G.time=(G.time||0)+1; $("#sTime").textContent="Süre "+fmtTime(G.time);
+  if (G.time%10===0) persist();
+  // uzun süre hamle yoksa ipucu düğmesini parlat
+  if (Date.now()-lastAction > 30000 && !G.idleShown){ G.idleShown=true; $("#bHint").classList.add("pulse");
+    coach("Takıldın mı? 💡 <b>İpucu</b>'na dokun, sana yapabileceğin bir hamleyi göstereyim.", [{t:"Göster",f:()=>$("#bHint").click()},{t:"Kapat",alt:1}]); }
+},1000);
+
+/* ---------- kurallar ---------- */
+const mc = (r,s,cls="") => `<span class="${cls||(s==="♥"||s==="♦"?"red":"blk")}">${r}<br>${s}</span>`;
+function openRules(){
+  modal(`<h2>Nasıl oynanır?</h2><div class="rules">
+  <div class="r"><div class="ri">🎯</div><p><b>Amaç:</b> 52 kartın hepsini sağ üstteki 4 yuvaya taşımak. Her renk kendi yuvasına, <b>A'dan K'ya</b> sırayla dizilir.<br>
+    <span class="mini">${mc("A","♥")}${mc("2","♥")}${mc("3","♥")}<span class="arrow">… K</span></span></p></div>
+  <div class="r"><div class="ri">🃏</div><p><b>Sütunlar:</b> Aşağıdaki 7 sütunda kartları <b>büyükten küçüğe</b> ve <b>renk değiştirerek</b> dizersin: siyahın üstüne kırmızı, kırmızının üstüne siyah.<br>
+    <span class="mini">${mc("8","♠")}${mc("7","♥")}${mc("6","♣")}${mc("5","♦")}</span></p></div>
+  <div class="r"><div class="ri">🔒</div><p><b>Kapalı kartlar:</b> Sütunların altında ters duran kartlar var. Windows'taki solitaire'de de böyledir. Üstündeki açık kartları başka yere taşıyınca, alttaki kapalı kart <b>kendiliğinden açılır</b>. Oyunun asıl işi bunları açmak. ♥ Bazılarının altında sana not var!<br>
+    <span class="mini"><span class="dn"></span><span class="dn"></span>${mc("9","♣")}<span class="arrow">→</span><span class="dn"></span><span class="dn"></span>${mc("4","♦")}</span></p></div>
+  <div class="r"><div class="ri">📦</div><p><b>Deste:</b> Sol üstteki desteye dokun, bir kart açılır. İşine yaramazsa tekrar dokun. Deste bitince <b>↻</b> işaretine dokun, kartlar baştan başlar. Sınırı yok.</p></div>
+  <div class="r"><div class="ri">👑</div><p><b>Boş sütun:</b> Bir sütun tamamen boşalırsa oraya sadece <b>Papaz (K)</b> koyabilirsin (üstünde dizilmiş kartlarla birlikte de olur).</p></div>
+  <div class="r"><div class="ri">👆</div><p><b>Kolay kontrol:</b> Bir karta <b>dokun</b>, gidebileceği yere kendiliğinden gider. İstersen parmağınla <b>sürükleyebilirsin</b> de. Açık bir dizinin ortasındaki karta dokunursan, o kart üstündekilerle birlikte taşınır.</p></div>
+  <div class="r"><div class="ri">💡</div><p><b>Takılırsan:</b> İpucu bir hamle gösterir, Geri al son hamleyi geri alır. Hiç hamle kalmadıysa Yeni ile yeni oyun başlat. Bütün kartlar açılınca <b>Bitir ✨</b> düğmesi çıkar, gerisini oyun yapar.</p></div>
+  <div class="r"><div class="ri">⭐</div><p><b>Puan:</b> Windows'taki gibi: yuvaya giden her kart +10, desteden sütuna +5, kapalı kart açmak +5.</p></div>
+  </div><div class="btns"><button class="btn" id="mClose">Anladım ♥</button></div>`);
+  $("#mClose").onclick=()=>{ closeModal(); save.tips.rules=1; persist(); };
+}
+
+/* ---------- ilk oyun rehberi ---------- */
+let coachKey=null;
+function coach(html, buttons=[{t:"Anladım"}], key=null, mark=null){
+  const c=$("#coach"); coachKey=key;
+  c.querySelector(".ct").innerHTML=html;
+  const cb=c.querySelector(".cb"); cb.innerHTML="";
+  buttons.forEach(b=>{ const e=document.createElement("button"); e.textContent=b.t; if(b.alt) e.className="alt";
+    e.onclick=()=>{ closeCoach(); if(b.f) b.f(); }; cb.appendChild(e); });
+  c.classList.add("on");
+  if (mark){ mark.forEach(e=>e.classList.add("hint")); setTimeout(()=>mark.forEach(e=>e.classList.remove("hint")),2500); }
+}
+function closeCoach(){ if (coachKey){ save.tips[coachKey]=1; persist(); } coachKey=null; $("#coach").classList.remove("on"); }
+function coachCheck(){
+  if (!G || isWon() || $("#modal").classList.contains("on") || $("#coach").classList.contains("on") || drag) return;
+  const T=save.tips, show=(k,html,mark,btns)=>{ coach(html, btns||[{t:"Anladım"}], k, mark); return true; };
+  if (!T.goal) return show("goal","<b>Amaç:</b> Bütün kartları sağ üstteki 4 yuvaya, A'dan K'ya sırayla dizmek. Kuralları her zaman <b>❓ Kurallar</b> düğmesinde bulabilirsin.",null,[{t:"Kuralları göster",f:openRules},{t:"Anladım",alt:1}]);
+  if (justFlipped && !T.flip){ justFlipped=false; return show("flip","Gördün mü? Üstü boşalan <b>kapalı kart kendiliğinden açıldı</b>. Oyunun asıl işi sütunlardaki bütün kapalı kartları böyle açmak."); }
+  justFlipped=false;
+  const tops=[]; if (G.waste.length) tops.push(last(G.waste)); G.tab.forEach(col=>{ if(col.length) tops.push(last(col)); });
+  const ace=tops.find(id=>cards[id].r===1);
+  if (ace!==undefined && !T.ace) return show("ace","Bir <b>As (A)</b> var! Ona dokun, yukarıdaki yuvaya gitsin. Yuvalar hep As ile başlar.",[els[ace]]);
+  const h=findHint();
+  if (h && !h.stock && h.dest.p==="tab" && !T.stack){
+    const a=cards[h.ids[0]], dp=G.tab[h.dest.c], b=dp.length?cards[last(dp)]:null;
+    if (b) return show("stack",`<b>${RANKS[a.r]}${SUITS[a.s]}</b> kartını <b>${RANKS[b.r]}${SUITS[b.s]}</b> kartının üstüne koyabilirsin: bir küçüğü ve rengi farklı. Karta dokunman yeterli.`,[els[h.ids[0]],els[last(dp)]]);
+  }
+  if (h && h.stock && G.stock.length && !T.stock) return show("stock","Şu an sütunlarda hamle yok. Sol üstteki <b>desteye dokun</b>, yeni bir kart açılsın.",[els[last(G.stock)]]);
+  if (!G.stock.length && G.waste.length && !T.recycle) return show("recycle","Deste bitti. Sol üstteki <b>↻</b> işaretine dokun, kartlar baştan başlar. İstediğin kadar dönebilirsin.",[slots.stock]);
+  const empty=G.tab.findIndex(col=>!col.length);
+  if (empty>=0 && !T.empty) return show("empty","Bir sütun boşaldı! Buraya sadece <b>Papaz (K)</b> koyabilirsin.",[slots.tab[empty]]);
+  if ((G.recycles||0)>=2 && !G.stuckShown){ G.stuckShown=true;
+    return coach("Desteyi iki kez baştan dolaştın ve yeni hamle çıkmadı. Bu dağıtımda hamle kalmamış olabilir. Yeni oyuna ne dersin? 🃏",[{t:"Yeni oyun",f:newGame},{t:"Devam",alt:1}]); }
+}
 $("#bSound").onclick=()=>{ save.sound=!save.sound; $("#bSound .ic").textContent=save.sound?"🔊":"🔇"; persist(); };
 $("#finish").onclick=autoFinish;
 window.addEventListener("resize", ()=>render());
@@ -535,8 +653,8 @@ function toast(text, icon="♥", ms=3000){
 $("#toast").onclick=()=>$("#toast").classList.remove("on");
 
 /* ---------- pencereler ---------- */
-function modal(html){ $("#sheet").innerHTML=html; $("#modal").classList.add("on"); $("#sheet").scrollTop=0; }
-function closeModal(){ $("#modal").classList.remove("on"); }
+function modal(html){ $("#coach").classList.remove("on"); coachKey=null; $("#sheet").innerHTML=html; $("#modal").classList.add("on"); $("#sheet").scrollTop=0; }
+function closeModal(){ $("#modal").classList.remove("on"); setTimeout(coachCheck,400); }
 $("#modal").addEventListener("click", e=>{ if(e.target.id==="modal") closeModal(); });
 const esc = s => s.replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
@@ -548,7 +666,7 @@ function confirmNew(){
 
 function win(){
   if (G.wonCounted) return; G.wonCounted=true;
-  save.wins++; persist(); sfx("win"); rain();
+  save.wins++; persist(); sfx("win"); $("#coach").classList.remove("on");
   const w=save.wins, title=WIN_TITLES[(w-1)%WIN_TITLES.length];
   const queue=[];
   if (w<=ALBUM.length){
@@ -574,7 +692,49 @@ function win(){
       <div class="btns"><button class="btn alt" id="mAlb">Anılar</button><button class="btn" id="mNext">Yeni oyun</button></div>`));
   let i=0;
   const next=()=>{ if(i>=queue.length){closeModal();newGame();return;} queue[i++](); const b=$("#mNext"); if(b) b.onclick=next; const a=$("#mAlb"); if(a) a.onclick=()=>{newGame();openAlbum("photos");}; };
-  setTimeout(next, 1300);
+  setTimeout(()=>bounceCards(()=>{ rain(); setTimeout(next, 900); }), 300);
+}
+
+/* ---------- kazanınca zıplayan kartlar ---------- */
+const MEDIMG = {}; Object.entries(MED).forEach(([r,src])=>{ const im=new Image(); im.src=src; MEDIMG[r]=im; });
+function drawCardCv(c,id,x,y,w,h){
+  const k=cards[id], col=isRed(k.s)?"#d0254b":"#1e1a22", rr=w*.12;
+  c.fillStyle="#fffaf5"; c.strokeStyle="#00000040"; c.lineWidth=1;
+  c.beginPath(); c.roundRect ? c.roundRect(x,y,w,h,rr) : c.rect(x,y,w,h); c.fill(); c.stroke();
+  c.fillStyle=col; c.textAlign="center"; c.textBaseline="top";
+  c.font=`900 ${w*.34}px Nunito, sans-serif`; c.fillText(RANKS[k.r], x+w*.22, y+w*.04);
+  c.font=`${w*.26}px sans-serif`; c.fillText(SUITS[k.s], x+w*.22, y+w*.38);
+  if (k.r>10 && MEDIMG[k.r].complete){
+    const r=w*.29, cx=x+w*.5, cy=y+h*.57;
+    c.save(); c.beginPath(); c.arc(cx,cy,r,0,Math.PI*2); c.clip(); c.drawImage(MEDIMG[k.r],cx-r,cy-r,r*2,r*2); c.restore();
+    c.strokeStyle="#f6c770"; c.lineWidth=2; c.beginPath(); c.arc(cx,cy,r,0,Math.PI*2); c.stroke();
+  } else { c.textBaseline="middle"; c.font=`${w*.5}px sans-serif`; c.fillText(SUITS[k.s], x+w*.5, y+h*.57); }
+}
+function bounceCards(done){
+  const cv=$("#bounce"), c=cv.getContext("2d"), dpr=devicePixelRatio||1;
+  cv.width=innerWidth*dpr; cv.height=innerHeight*dpr; c.setTransform(dpr,0,0,dpr,0,0); cv.style.display="block";
+  const br=board.getBoundingClientRect(), w=L.cw, h=L.ch, floor=innerHeight-h;
+  const order=[]; for (let r=13;r>=1;r--) for (let f=0;f<4;f++) order.push({id:f*13+r-1,f});
+  let live=[], i=0, frame=0, finished=false;
+  const finish=()=>{ if(finished) return; finished=true; cv.onclick=null;
+    cv.style.transition="opacity .5s"; cv.style.opacity="0";
+    setTimeout(()=>{ cv.style.display="none"; cv.style.opacity="1"; cv.style.transition=""; c.clearRect(0,0,innerWidth,innerHeight); done(); },500); };
+  cv.onclick=finish;
+  const step=()=>{
+    if (finished) return;
+    if (frame++%5===0 && i<order.length){
+      const o=order[i++]; const e=els[o.id]; e.style.visibility="hidden";
+      live.push({id:o.id, x:br.left+colX(3+o.f), y:br.top+L.top, vx:(Math.random()<.5?-1:1)*(2+Math.random()*4), vy:-(Math.random()*7)});
+    }
+    live.forEach(p=>{ p.vy+=.55; p.x+=p.vx; p.y+=p.vy;
+      if (p.y>floor){ p.y=floor; p.vy=-p.vy*.78; if (Math.abs(p.vy)<2) p.vy=-7-Math.random()*4; }
+      drawCardCv(c,p.id,p.x,p.y,w,h); });
+    live=live.filter(p=>p.x>-w && p.x<innerWidth);
+    if (i>=order.length && !live.length) { setTimeout(finish,600); return; }
+    requestAnimationFrame(step);
+  };
+  step();
+  setTimeout(finish, 14000);
 }
 
 function openAlbum(tab){
@@ -609,7 +769,7 @@ function welcome(){
     <p>Bu oyunu senin için yaptım. Bildiğin solitaire, ama içinde sana küçük sürprizler sakladım:</p>
     <p style="text-align:left;font-size:14px">♥ Bazı kapalı kartların altında sana notlar var. Kalpleri bul!<br>
     📷 Kazandığın her oyun albümümüze bir anı ekler.<br>🎟️ Arada bir de sürpriz kuponlar çıkar.<br>
-    👆 Bir karta dokunursan kart kendiliğinden yerine gider.</p>
+    👆 Bir karta dokunursan kart kendiliğinden yerine gider.<br>❓ Kuralları unutursan <b>Kurallar</b> düğmesine dokun.</p>
     <div class="btns"><button class="btn" id="mGo">Hadi oynayalım ♥</button></div>`);
   $("#mGo").onclick=()=>{ closeModal(); save.seenWelcome=true; persist(); sfx("heart"); };
 }
@@ -625,9 +785,19 @@ function greet(){
 /* ---------- başlat ---------- */
 buildSlots(); buildCards();
 $("#bSound .ic").textContent=save.sound?"🔊":"🔇";
-if (save.game && save.game.tab && !save.game.wonCounted) { G=save.game; G.opened=G.opened||{}; render(); } else newGame();
+if (save.game && save.game.tab && !save.game.wonCounted) { G=save.game; G.opened=G.opened||{}; repair(); render(); } else newGame();
 requestAnimationFrame(()=>render());
-if (!save.seenWelcome) welcome(); else setTimeout(greet,500);
+const VERSION=2;
+if (!save.seenWelcome) { welcome(); save.version=VERSION; }
+else if ((save.version||0)<VERSION){
+  save.version=VERSION; persist();
+  modal(`<h2>Oyun güncellendi ♥</h2>
+    <p>Sütuna koyduğun kartların bazen ters dönmesi <b>benim hatamdı</b>, düzelttim. Kocan özür diler 🙈</p>
+    <p style="text-align:left;font-size:14px">❓ Artık <b>Kurallar</b> düğmesi var.<br>🧭 İlk oyunlarda sana küçük ipuçları göstereceğim.<br>⭐ Windows'taki gibi puan ve süre eklendi.<br>🎉 Kazanınca kartlar ekranda zıplayacak!</p>
+    <div class="btns"><button class="btn alt" id="mR">Kurallar</button><button class="btn" id="mGo">Oyuna dön ♥</button></div>`);
+  $("#mGo").onclick=()=>{ closeModal(); setTimeout(coachCheck,300); }; $("#mR").onclick=openRules;
+}
+else setTimeout(greet,500);
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>
